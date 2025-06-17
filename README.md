@@ -10,6 +10,9 @@ This repository contains a simple FastAPI server used as the central controller 
 pip install -r requirements.txt
 ```
 
+The server uses SQLite via SQLAlchemy to keep track of users. The database file
+`servidorgame.db` will be created automatically on first run.
+
 2. Run the server:
 
 ```bash
