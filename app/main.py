@@ -1,12 +1,21 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, Dict
 import logging
 from datetime import datetime
+from sqlalchemy.orm import Session
+
+from .database import get_db, init_db, User
 
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="ServidorGame")
+
+
+@app.on_event("startup")
+def startup_event():
+    """Initialize the database on startup."""
+    init_db()
 
 class WebhookPayload(BaseModel):
     user_id: int
@@ -54,9 +63,27 @@ async def handle_menu_selection(payload: WebhookPayload):
     return {"action": "reply", "data": {"text": "Menu option chosen"}}
 
 @app.post("/user/webhook")
-async def user_webhook(payload: WebhookPayload):
+async def user_webhook(payload: WebhookPayload, db: Session = Depends(get_db)):
     """Route incoming messages to the appropriate handler."""
     logging.info("Received webhook: %s", payload.json())
+
+    user = db.query(User).filter(User.user_id == payload.user_id).first()
+    now = datetime.utcnow()
+    if user is None:
+        user = User(
+            user_id=payload.user_id,
+            username=(payload.metadata or {}).get("username"),
+            full_name=(payload.metadata or {}).get("full_name"),
+            role=(payload.metadata or {}).get("role", "user"),
+            date_joined=now,
+            is_active=True,
+        )
+        db.add(user)
+    else:
+        if payload.metadata and payload.metadata.get("role"):
+            user.role = payload.metadata["role"]
+        user.date_joined = now
+    db.commit()
 
     if payload.message_type == "text":
         if payload.message_data and payload.message_data.startswith("/start"):
