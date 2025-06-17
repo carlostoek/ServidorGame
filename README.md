@@ -17,3 +17,11 @@ uvicorn app.main:app --reload
 ```
 
 The server listens on `/user/webhook` for POST requests with JSON payloads describing Telegram bot messages.
+
+### Environment variables
+
+The following variables control access level detection:
+
+- `TELEGRAM_BOT_TOKEN` - token of the bot used for API calls.
+- `TELEGRAM_VIP_CHANNEL_ID` - channel ID checked for VIP membership.
+- `TELEGRAM_ADMIN_ID` - Telegram user ID that should be treated as administrator.
